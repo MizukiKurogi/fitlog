@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#111214" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FitLog" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>FitLog - トレーニング・食事記録</title>
+
+<!-- React / ReactDOM / Babel（ブラウザ内でJSXをそのまま実行するため） -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<style>
+  html, body {
+    margin: 0; padding: 0; background: #111214; color: #F2F1EC;
+    -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
+    min-height: 100vh; min-height: 100dvh;
+  }
+  #root { min-height: 100vh; min-height: 100dvh; }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { height: 4px; width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #2E3136; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+/* ------------------------------------------------------------
+   アイコン（lucide-reactの代わりに最小限のSVGを自前定義）
+   ------------------------------------------------------------ */
+function makeIcon(children) {
+  return function Icon({ size = 16, color = 'currentColor', strokeWidth = 2, style, className }) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+        strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
+        {children}
+      </svg>
+    );
+  };
+}
+
+const Dumbbell = makeIcon(<><path d="M14.4 14.4 9.6 9.6" /><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z" /><path d="m21.5 21.5-1.4-1.4" /><path d="M3.9 3.9 2.5 2.5" /><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1 2.829-2.829l6.364 6.364a2 2 0 1 1-2.829 2.829l-1.767 1.768a2 2 0 1 1-2.829-2.829z" /></>);
+const UtensilsCrossed = makeIcon(<><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8" /><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7" /><path d="m2.1 21.8 6.4-6.3" /><path d="m19 5-7 7" /></>);
+const Target = makeIcon(<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>);
+const HomeIcon = makeIcon(<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></>);
+const Plus = makeIcon(<><path d="M5 12h14" /><path d="M12 5v14" /></>);
+const X = makeIcon(<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>);
+const Check = makeIcon(<path d="M20 6 9 17l-5-5" />);
+const ChevronRight = makeIcon(<path d="m9 18 6-6-6-6" />);
+const Flame = makeIcon(<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />);
+const TrendingUp = makeIcon(<><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></>);
+const TrendingDown = makeIcon(<><path d="M16 17h6v-6" /><path d="m22 17-8.5-8.5-5 5L2 7" /></>);
+const Minus = makeIcon(<path d="M5 12h14" />);
+const AlertTriangle = makeIcon(<><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></>);
+const Trash2 = makeIcon(<><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></>);
+const Clock3 = makeIcon(<><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16.5 14" /></>);
+const Sparkles = makeIcon(<><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /><path d="M20 3v4" /><path d="M22 5h-4" /><path d="M4 17v2" /><path d="M5 18H3" /></>);
+
+/* ============================================================
+   定数・トークン
+   ============================================================ */
+
+const COLORS = {
+  bg: '#111214',
+  surface: '#1B1D21',
+  surface2: '#232629',
+  border: '#2E3136',
+  text: '#F2F1EC',
+  textDim: '#9A9DA6',
+  textFaint: '#5C5F66',
+  accent: '#C8F031', // ライム: 前進・完了
+  accentDim: '#8A9C1F',
+  warn: '#FF7A52', // 警告・不足
+  carry: '#F0B429', // 繰り越し中
+  rest: '#4B5CC4', // 休養
+};
+
+const WEEKDAY_JP = ['日', '月', '火', '水', '木', '金', '土'];
+const BODYPART_PRESETS = ['胸', '胸(上部)', '胸(中下部)', '背中', '肩', '脚', '腕', '腹筋', 'Push', 'Pull', 'Upper', 'Lower'];
+
+const STORAGE = {
+  PROFILE: 'fitapp:profile',
+  TRAINING_EXERCISES: 'fitapp:training-exercises',
+  TRAINING_STATE: 'fitapp:training-state',
+  DIET_LOG_PREFIX: 'fitapp:diet-log:',
+  DIET_TARGETS: 'fitapp:diet-targets',
+  DIET_FAVORITES: 'fitapp:diet-favorites',
+  CUSTOM_FOODS: 'fitapp:custom-foods',
+};
+
+const DEFAULT_EXERCISES = {
+  // メイン5種目＋腹筋2種目で、休憩込み約60分を想定したボリューム
+  '胸・肩・三頭': [
+    { id: 'p1', name: 'インクラインダンベルプレス', sets: 4, reps: '8-10' },
+    { id: 'p2', name: 'チェストプレス', sets: 3, reps: '10-12' },
+    { id: 'p3', name: 'ショルダープレス', sets: 3, reps: '10-12' },
+    { id: 'p4', name: 'サイドレイズ', sets: 3, reps: '12-15' },
+    { id: 'p5', name: 'ケーブルプレスダウン', sets: 3, reps: '12-15' },
+    { id: 'p6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
+    { id: 'p7', name: 'ケーブルクランチ', sets: 3, reps: '15-20' },
+  ],
+  '背中・二頭': [
+    { id: 'b1', name: 'ラットプルダウン', sets: 4, reps: '10-12' },
+    { id: 'b2', name: 'シーテッドケーブルロー', sets: 3, reps: '10-12' },
+    { id: 'b3', name: 'ワンハンドダンベルロー', sets: 3, reps: '10-12' },
+    { id: 'b4', name: 'リアデルト', sets: 3, reps: '12-15' },
+    { id: 'b5', name: 'ダンベルカール', sets: 3, reps: '10-12' },
+    { id: 'b6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
+    { id: 'b7', name: 'レッグレイズ', sets: 3, reps: '15-20' },
+  ],
+  脚: [
+    // 頻度が週1回想定なので、その分1回あたりのボリュームをやや厚めにしている
+    { id: 'l1', name: 'スミススクワット', sets: 4, reps: '8-10' },
+    { id: 'l2', name: 'レッグプレス', sets: 4, reps: '10-15' },
+    { id: 'l3', name: 'レッグカール', sets: 3, reps: '12-15' },
+    { id: 'l4', name: 'レッグエクステンション', sets: 3, reps: '12-15' },
+    { id: 'l5', name: 'カーフレイズ', sets: 3, reps: '15-20' },
+    { id: 'l6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
+    { id: 'l7', name: 'ケーブルクランチ', sets: 3, reps: '15-20' },
+  ],
+};
+
+// Push/Pull/Legs（脚は週1回想定・腹筋多め・約1時間目安）プリセット（トレーニング設定タブから読み込み直せる）
+const BEGINNER_AESTHETIC_PRESET = {
+  exercises: DEFAULT_EXERCISES,
+};
+
+// 食事の枠（朝食/昼食/夕食/間食）
+const MEAL_TYPES = [
+  { id: 'breakfast', label: '朝食' },
+  { id: 'lunch', label: '昼食' },
+  { id: 'dinner', label: '夕食' },
+  { id: 'snack', label: '間食' },
+];
+
+// 現在時刻から、記録しようとしている食事がどの枠に該当しそうかを推定（あくまで初期値、変更可）
+function guessMealType(hhmm) {
+  const h = parseInt(hhmm.split(':')[0], 10);
+  if (h < 10) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
+// 空腹時間帯を検出する閾値（分）
+const GAP_THRESHOLD_MIN = 240; // 4時間
+// 1日のうち「食事を意識する時間帯」の開始・終了（この範囲内の空白のみ検出する）
+const DAY_WINDOW_START_MIN = 7 * 60; // 7:00
+const DAY_WINDOW_END_MIN = 22 * 60; // 22:00
+
+function hhmmToMin(hhmm) {
+  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10));
+  return h * 60 + m;
+}
+function minToHHMM(min) {
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * 今日の記録（time付き）から、GAP_THRESHOLD_MIN以上食事の空いている時間帯を検出する。
+ * 1日の意識対象時間帯（DAY_WINDOW_START〜END）の中だけを見る。
+ * 「現在時刻」を超える未来の空白は検出しない（まだ食べていないだけなので）。
+ */
+function findNutritionGaps(entries, nowMin) {
+  const times = entries.map((e) => hhmmToMin(e.time)).filter((t) => !isNaN(t)).sort((a, b) => a - b);
+  const effectiveEnd = Math.min(nowMin, DAY_WINDOW_END_MIN);
+  const points = [DAY_WINDOW_START_MIN, ...times.filter((t) => t >= DAY_WINDOW_START_MIN && t <= effectiveEnd), effectiveEnd];
+  const gaps = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const diff = points[i + 1] - points[i];
+    if (diff >= GAP_THRESHOLD_MIN) {
+      gaps.push({ startMin: points[i], endMin: points[i + 1], diff });
+    }
+  }
+  return gaps;
+}
+
+// 100gあたりの概算値（一般的な食品成分表ベースの目安。個体差あり）
+const FOOD_DB = [
+  { name: '鶏むね肉(皮なし)', unit: 100, serving: { label: '100g', grams: 100 }, kcal: 108, protein: 22.3, fat: 1.5, carb: 0, zinc: 0.6, iron: 0.3, vitD: 0.1, mg: 27 },
+  { name: '鶏もも肉(皮つき)', unit: 100, serving: { label: '100g', grams: 100 }, kcal: 190, protein: 16.2, fat: 14.0, carb: 0, zinc: 1.6, iron: 0.6, vitD: 0.4, mg: 20 },
+  { name: '牛赤身肉(もも)', unit: 100, serving: { label: '100g', grams: 100 }, kcal: 140, protein: 21.3, fat: 4.2, carb: 0.5, zinc: 4.4, iron: 2.5, vitD: 0, mg: 24 },
+  { name: '豚ロース赤身', unit: 100, serving: { label: '100g', grams: 100 }, kcal: 150, protein: 22.7, fat: 5.6, carb: 0.2, zinc: 2.2, iron: 0.7, vitD: 0.3, mg: 24 },
+  { name: '卵(全卵)', unit: 100, serving: { label: '1個', grams: 50 }, kcal: 151, protein: 12.3, fat: 10.3, carb: 0.3, zinc: 1.3, iron: 1.8, vitD: 3.8, mg: 11 },
+  { name: '納豆', unit: 100, serving: { label: '1パック', grams: 45 }, kcal: 190, protein: 16.5, fat: 10.0, carb: 12.1, zinc: 1.9, iron: 3.3, vitD: 0, mg: 100 },
+  { name: '木綿豆腐', unit: 100, serving: { label: '1/2丁', grams: 150 }, kcal: 72, protein: 6.6, fat: 4.2, carb: 1.6, zinc: 0.6, iron: 0.9, vitD: 0, mg: 57 },
+  { name: '白米(炊飯後)', unit: 100, serving: { label: '茶碗1杯', grams: 150 }, kcal: 156, protein: 2.5, fat: 0.3, carb: 37.1, zinc: 0.6, iron: 0.1, vitD: 0, mg: 7 },
+  { name: '玄米(炊飯後)', unit: 100, serving: { label: '茶碗1杯', grams: 150 }, kcal: 152, protein: 2.8, fat: 1.0, carb: 35.6, zinc: 0.8, iron: 0.6, vitD: 0, mg: 49 },
+  { name: 'オートミール(乾燥)', unit: 100, serving: { label: '1食分', grams: 30 }, kcal: 380, protein: 13.7, fat: 5.7, carb: 69.1, zinc: 2.1, iron: 3.9, vitD: 0, mg: 100 },
+  { name: 'さつまいも', unit: 100, serving: { label: '中1本', grams: 200 }, kcal: 134, protein: 1.2, fat: 0.2, carb: 31.5, zinc: 0.2, iron: 0.6, vitD: 0, mg: 24 },
+  { name: 'ブロッコリー', unit: 100, serving: { label: '1/4株', grams: 80 }, kcal: 33, protein: 4.3, fat: 0.5, carb: 5.2, zinc: 0.7, iron: 1.0, vitD: 0, mg: 26 },
+  { name: 'ほうれん草', unit: 100, serving: { label: '1/2束', grams: 100 }, kcal: 20, protein: 2.2, fat: 0.4, carb: 3.1, zinc: 0.7, iron: 2.0, vitD: 0, mg: 69 },
+  { name: 'バナナ', unit: 100, serving: { label: '1本', grams: 100 }, kcal: 86, protein: 1.1, fat: 0.2, carb: 22.5, zinc: 0.2, iron: 0.3, vitD: 0, mg: 32 },
+  { name: 'ギリシャヨーグルト(無糖)', unit: 100, serving: { label: '1カップ', grams: 100 }, kcal: 59, protein: 10.0, fat: 0.3, carb: 3.8, zinc: 0.5, iron: 0.1, vitD: 0, mg: 11 },
+  { name: '牛乳', unit: 100, serving: { label: 'コップ1杯', grams: 200 }, kcal: 67, protein: 3.3, fat: 3.8, carb: 4.8, zinc: 0.4, iron: 0.02, vitD: 0.3, mg: 10 },
+  { name: 'ホエイプロテイン(粉末)', unit: 100, serving: { label: '1スクープ', grams: 30 }, kcal: 400, protein: 78.0, fat: 6.0, carb: 8.0, zinc: 3.0, iron: 1.0, vitD: 0, mg: 30 },
+  { name: '牡蠣', unit: 100, serving: { label: '3個', grams: 60 }, kcal: 58, protein: 6.9, fat: 1.4, carb: 4.9, zinc: 14.5, iron: 2.1, vitD: 0, mg: 74 },
+  { name: 'アーモンド', unit: 100, serving: { label: '10粒', grams: 15 }, kcal: 587, protein: 19.6, fat: 51.8, carb: 20.9, zinc: 3.1, iron: 3.6, vitD: 0, mg: 270 },
+  { name: '鮭', unit: 100, serving: { label: '1切れ', grams: 80 }, kcal: 133, protein: 22.3, fat: 4.1, carb: 0.1, zinc: 0.5, iron: 0.5, vitD: 32.0, mg: 28 },
+  { name: 'サバ(塩焼き)', unit: 100, serving: { label: '1切れ', grams: 100 }, kcal: 211, protein: 23.0, fat: 13.0, carb: 0.1, zinc: 1.1, iron: 1.6, vitD: 11.0, mg: 32 },
+  { name: 'きな粉', unit: 100, serving: { label: '大さじ1', grams: 7 }, kcal: 437, protein: 36.7, fat: 25.7, carb: 28.5, zinc: 4.1, iron: 7.9, vitD: 0, mg: 260 },
+  { name: 'チーズ(プロセス)', unit: 100, serving: { label: '1枚', grams: 18 }, kcal: 339, protein: 22.7, fat: 26.0, carb: 1.3, zinc: 3.2, iron: 0.3, vitD: 0, mg: 19 },
+  { name: 'アボカド', unit: 100, serving: { label: '1/2個', grams: 100 }, kcal: 187, protein: 2.5, fat: 18.7, carb: 7.9, zinc: 0.7, iron: 0.6, vitD: 0, mg: 34 },
+  { name: 'EAA(パウダー)', unit: 10, serving: { label: '1杯', grams: 10 }, kcal: 38, protein: 9.5, fat: 0, carb: 0.2, zinc: 0, iron: 0, vitD: 0, mg: 0 },
+  { name: 'プロテインバー', unit: 40, serving: { label: '1本', grams: 40 }, kcal: 160, protein: 15.0, fat: 5.0, carb: 15.0, zinc: 0.5, iron: 0.5, vitD: 0, mg: 20 },
+  { name: 'ゆで卵', unit: 50, serving: { label: '1個', grams: 50 }, kcal: 76, protein: 6.2, fat: 5.2, carb: 0.2, zinc: 0.7, iron: 0.9, vitD: 1.9, mg: 6 },
+  { name: 'キムチ', unit: 100, serving: { label: '小皿1杯', grams: 50 }, kcal: 27, protein: 2.2, fat: 0.5, carb: 4.2, zinc: 0.3, iron: 0.4, vitD: 0, mg: 15 },
+  { name: '味噌汁', unit: 180, serving: { label: '1杯', grams: 180 }, kcal: 40, protein: 3.0, fat: 1.2, carb: 4.5, zinc: 0.4, iron: 0.5, vitD: 0, mg: 20 },
+  { name: 'ツナ缶(水煮)', unit: 70, serving: { label: '1缶', grams: 70 }, kcal: 60, protein: 13.0, fat: 0.7, carb: 0.1, zinc: 0.4, iron: 0.5, vitD: 2.0, mg: 20 },
+  { name: 'サラダチキン', unit: 100, serving: { label: '1個', grams: 110 }, kcal: 113, protein: 24.0, fat: 1.2, carb: 0.5, zinc: 0.6, iron: 0.3, vitD: 0.1, mg: 28 },
+  { name: 'おにぎり(鮭)', unit: 100, serving: { label: '1個', grams: 100 }, kcal: 170, protein: 3.8, fat: 1.0, carb: 36.0, zinc: 0.6, iron: 0.2, vitD: 1.0, mg: 10 },
+  { name: '食パン(6枚切り)', unit: 60, serving: { label: '1枚', grams: 60 }, kcal: 158, protein: 5.6, fat: 2.6, carb: 28.0, zinc: 0.4, iron: 0.3, vitD: 0, mg: 15 },
+  { name: 'カップラーメン', unit: 100, serving: { label: '1個', grams: 77 }, kcal: 336, protein: 7.0, fat: 14.0, carb: 44.0, zinc: 0.4, iron: 0.6, vitD: 0, mg: 15 },
+  { name: 'ヨーグルト(加糖)', unit: 100, serving: { label: '1個', grams: 100 }, kcal: 65, protein: 3.4, fat: 1.0, carb: 11.9, zinc: 0.4, iron: 0.1, vitD: 0, mg: 10 },
+  { name: '豆乳(無調整)', unit: 100, serving: { label: 'コップ1杯', grams: 200 }, kcal: 44, protein: 3.6, fat: 2.0, carb: 3.1, zinc: 0.3, iron: 1.2, vitD: 0, mg: 25 },
+  { name: 'もやし', unit: 100, serving: { label: '1袋', grams: 200 }, kcal: 14, protein: 1.7, fat: 0.1, carb: 2.6, zinc: 0.2, iron: 0.2, vitD: 0, mg: 8 },
+  { name: 'きゅうり', unit: 100, serving: { label: '1本', grams: 100 }, kcal: 13, protein: 1.0, fat: 0.1, carb: 3.0, zinc: 0.2, iron: 0.3, vitD: 0, mg: 15 },
+  { name: 'トマト', unit: 100, serving: { label: '1個', grams: 150 }, kcal: 19, protein: 0.7, fat: 0.1, carb: 4.7, zinc: 0.1, iron: 0.2, vitD: 0, mg: 9 },
+  { name: 'りんご', unit: 100, serving: { label: '1個', grams: 250 }, kcal: 53, protein: 0.1, fat: 0.1, carb: 14.6, zinc: 0.1, iron: 0.1, vitD: 0, mg: 3 },
+  { name: '鶏ささみ', unit: 100, serving: { label: '2本', grams: 100 }, kcal: 98, protein: 22.7, fat: 0.5, carb: 0, zinc: 0.6, iron: 0.2, vitD: 0, mg: 29 },
+];
+
+const NUTRIENT_LABELS = {
+  zinc: { label: '亜鉛', unit: 'mg' },
+  iron: { label: '鉄', unit: 'mg' },
+  vitD: { label: 'ビタミンD', unit: 'µg' },
+  mg: { label: 'マグネシウム', unit: 'mg' },
+};
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const toDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const addDays = (d, n) => {
+  const nd = new Date(d);
+  nd.setDate(nd.getDate() + n);
+  return nd;
+};
+const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
+const nowHHMM = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+async function loadKey(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw);
+  } catch (e) {
+    return fallback;
+  }
+}
+async function saveKey(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error('storage save failed', key, e);
+  }
+}
+
+/* ============================================================
+   本日の部位（手動選択。前日と同じ部位が未完了ならそれを初期表示、
+   完了していれば「次の部位」を提案する程度のシンプルなデフォルト）
+   ============================================================ */
+
+function suggestTodayBodypart(todayDateStr, exercises, state) {
+  const bodyparts = Object.keys(exercises);
+  if (bodyparts.length === 0) return null;
+
+  const yStr = toDateStr(addDays(new Date(todayDateStr), -1));
+  const yRecord = state.history?.[yStr];
+
+  if (yRecord && yRecord.bodypart) {
+    const done = yRecord.exerciseIds && yRecord.exerciseIds.length > 0
+      && yRecord.completed && yRecord.completed.length >= yRecord.exerciseIds.length;
+    if (!done) return yRecord.bodypart; // 前日やり残しがあれば同じ部位を提案
+    // 完了していれば、リスト内の次の部位を提案（単純な巡回）
+    const idx = bodyparts.indexOf(yRecord.bodypart);
+    if (idx !== -1) return bodyparts[(idx + 1) % bodyparts.length];
+  }
+  return bodyparts[0];
+}
+
+/* ============================================================
+   小さいUIパーツ
+   ============================================================ */
+
+function Card({ children, style }) {
+  return (
+    <div
+      style={{
+        background: COLORS.surface,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 14,
+        padding: 18,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div
+      style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11,
+        letterSpacing: '0.12em',
+        color: COLORS.textFaint,
+        textTransform: 'uppercase',
+        marginBottom: 10,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PrimaryButton({ children, onClick, disabled, style }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: disabled ? COLORS.surface2 : COLORS.accent,
+        color: disabled ? COLORS.textFaint : '#0F1000',
+        border: 'none',
+        borderRadius: 10,
+        padding: '10px 16px',
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        transition: 'transform .1s ease',
+        ...style,
+      }}
+      onMouseDown={(e) => { if (!disabled) e.currentTarget.style.transform = 'scale(0.97)'; }}
+      onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({ children, onClick, style, active }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? COLORS.surface2 : 'transparent',
+        color: active ? COLORS.text : COLORS.textDim,
+        border: `1px solid ${active ? COLORS.border : 'transparent'}`,
+        borderRadius: 10,
+        padding: '8px 14px',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ============================================================
+   週間ストリップ（署名要素）: 休んでも「流れ」が途切れないビジュアル
+   ============================================================ */
+
+function WeekStrip({ centerDate, state, setState, exercises }) {
+  // 過去14日〜未来21日までを横スクロールできる範囲として用意する
+  // 表示時は「今日が左端」になる位置まで自動スクロールする
+  const PAST_DAYS = 14;
+  const FUTURE_DAYS = 21;
+  const days = useMemo(
+    () => Array.from({ length: PAST_DAYS + FUTURE_DAYS + 1 }, (_, i) => addDays(centerDate, i - PAST_DAYS)),
+    [centerDate]
+  );
+  const todayIndex = PAST_DAYS;
+  const [editingDate, setEditingDate] = useState(null);
+  const scrollRef = useRef(null);
+  const CELL_WIDTH = 58;
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = todayIndex * CELL_WIDTH;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const infoFor = (d) => {
+    const ds = toDateStr(d);
+    const rec = state.history?.[ds];
+    if (rec) {
+      const done = rec.exerciseIds && rec.completed && rec.completed.length >= rec.exerciseIds.length && rec.exerciseIds.length > 0;
+      return { bodypart: rec.bodypart, isRest: !rec.bodypart, done, recorded: true };
+    }
+    return { bodypart: null, isRest: true, done: false, recorded: false };
+  };
+
+  const changeBodypartForDate = (dateStr, bodypart) => {
+    const bp = bodypart || null;
+    const exList = bp ? (exercises[bp] || []) : [];
+    const next = {
+      ...state,
+      history: { ...state.history, [dateStr]: { bodypart: bp, exerciseIds: exList.map((e) => e.id), completed: [], logs: {} } },
+    };
+    setState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const scrollToToday = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ left: todayIndex * CELL_WIDTH, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+        <button
+          onClick={scrollToToday}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}
+        >
+          今日へ戻る
+        </button>
+      </div>
+      <div
+        ref={scrollRef}
+        style={{ display: 'flex', alignItems: 'stretch', gap: 3, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'thin' }}
+      >
+        {days.map((d, i) => {
+          const ds = toDateStr(d);
+          const info = infoFor(d);
+          const isToday = i === todayIndex;
+          const isEditing = editingDate === ds;
+          let color = COLORS.textFaint;
+          if (info.recorded) {
+            if (info.isRest) color = COLORS.rest;
+            else if (info.done) color = COLORS.accent;
+            else color = COLORS.warn;
+          }
+
+          return (
+            <button
+              key={i}
+              onClick={() => setEditingDate(isEditing ? null : ds)}
+              style={{
+                flex: `0 0 ${CELL_WIDTH - 3}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                background: isEditing ? COLORS.surface2 : 'transparent',
+                border: `1px solid ${isEditing ? COLORS.accent : isToday ? COLORS.border : 'transparent'}`,
+                borderRadius: 8, padding: '6px 2px', cursor: 'pointer', minWidth: 0,
+              }}
+            >
+              <span style={{
+                fontSize: 9, color: isToday ? COLORS.text : COLORS.textFaint,
+                fontWeight: isToday ? 700 : 400, fontFamily: "'JetBrains Mono', monospace",
+              }}>
+                {WEEKDAY_JP[d.getDay()]}
+              </span>
+              <span style={{
+                fontSize: 13, color: isToday ? COLORS.text : COLORS.textDim,
+                fontWeight: isToday ? 800 : 500, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1,
+              }}>
+                {d.getMonth() + 1}/{d.getDate()}
+              </span>
+              <span style={{
+                fontSize: 11, fontWeight: 700, color, textAlign: 'center', lineHeight: 1.2,
+                minHeight: 14, wordBreak: 'keep-all', overflowWrap: 'anywhere',
+              }}>
+                {info.recorded ? (info.bodypart || '休') : '－'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {editingDate && (
+        <div style={{
+          marginTop: 10, display: 'flex', gap: 6, alignItems: 'center',
+          background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10,
+        }}>
+          <span style={{ fontSize: 11, color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+            {editingDate.slice(5)}
+          </span>
+          <select
+            value={state.history?.[editingDate]?.bodypart || ''}
+            onChange={(e) => changeBodypartForDate(editingDate, e.target.value)}
+            style={{
+              flex: 1, background: COLORS.surface, color: COLORS.text, border: `1px solid ${COLORS.border}`,
+              borderRadius: 8, padding: '6px 8px', fontSize: 13,
+            }}
+          >
+            <option value="">休み</option>
+            {Object.keys(exercises).map((bp) => <option key={bp} value={bp}>{bp}</option>)}
+          </select>
+          <button
+            onClick={() => setEditingDate(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint, flexShrink: 0 }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   ホーム
+   ============================================================ */
+
+function HomeView({ profile, exercises, trainingState, setTrainingState, dietLog, dietTargets, setTab }) {
+  const today = new Date();
+  const todayStr = toDateStr(today);
+
+  const rec = trainingState.history?.[todayStr];
+  const suggested = useMemo(
+    () => suggestTodayBodypart(todayStr, exercises, trainingState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayStr, exercises]
+  );
+  const currentBodypart = rec ? rec.bodypart : suggested;
+  const isRest = !currentBodypart;
+  const todayExercises = currentBodypart ? (exercises[currentBodypart] || []) : [];
+  const completedIds = rec?.completed || [];
+
+  const todayFoods = dietLog[todayStr] || [];
+  const totals = todayFoods.reduce((acc, f) => {
+    acc.kcal += f.kcal; acc.protein += f.protein; acc.fat += f.fat; acc.carb += f.carb;
+    return acc;
+  }, { kcal: 0, protein: 0, fat: 0, carb: 0 });
+
+  const daysUntilCompetition = useMemo(() => {
+    if (!profile.competitionDate) return null;
+    const target = new Date(profile.competitionDate);
+    const diffMs = target.setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0);
+    return Math.round(diffMs / 86400000);
+  }, [profile.competitionDate]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card>
+        <SectionLabel>この一週間</SectionLabel>
+        <WeekStrip centerDate={today} state={trainingState} setState={setTrainingState} exercises={exercises} />
+      </Card>
+
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <SectionLabel>トレーニング</SectionLabel>
+          <GhostButton onClick={() => setTab('training')} style={{ padding: '4px 10px', fontSize: 11 }}>
+            編集 <ChevronRight size={12} />
+          </GhostButton>
+        </div>
+        {isRest ? (
+          <div style={{ color: COLORS.textDim, fontSize: 14 }}>
+            今日は休養日です。しっかり回復させましょう。
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10, color: COLORS.text }}>
+              部位 {currentBodypart}
+            </div>
+            {todayExercises.length === 0 ? (
+              <div style={{ color: COLORS.textFaint, fontSize: 13 }}>
+                この部位の種目が未登録です。「トレーニング」タブから追加してください。
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {todayExercises.map((ex) => {
+                  const done = completedIds.includes(ex.id);
+                  return (
+                    <div
+                      key={ex.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        color: done ? COLORS.textDim : COLORS.text, fontSize: 14,
+                      }}
+                    >
+                      <span style={{
+                        width: 16, height: 16, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        background: done ? COLORS.accent : 'transparent', border: `1.5px solid ${done ? COLORS.accent : COLORS.textFaint}`,
+                      }}>
+                        {done && <Check size={11} color="#0F1000" strokeWidth={3} />}
+                      </span>
+                      <span style={{ textDecoration: done ? 'line-through' : 'none' }}>{ex.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      <Card>
+        <SectionLabel>今日の食事</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          {[
+            ['kcal', 'kcal', totals.kcal, dietTargets.kcal],
+            ['protein', 'P', totals.protein, dietTargets.protein],
+            ['fat', 'F', totals.fat, dietTargets.fat],
+            ['carb', 'C', totals.carb, dietTargets.carb],
+          ].map(([key, label, val, target]) => (
+            <div key={key} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>{label}</div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: COLORS.text }}>
+                {Math.round(val)}
+              </div>
+              <div style={{ fontSize: 10, color: COLORS.textFaint }}>/ {Math.round(target)}</div>
+            </div>
+          ))}
+        </div>
+        <GhostButton onClick={() => setTab('diet')} style={{ marginTop: 14, width: '100%', justifyContent: 'center' }}>
+          食事を記録する <ChevronRight size={14} />
+        </GhostButton>
+      </Card>
+
+      <Card>
+        <SectionLabel>目標</SectionLabel>
+        <div style={{ display: 'flex', gap: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>体重</div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: COLORS.text }}>
+              {profile.weightKg || '-'}<span style={{ fontSize: 13, color: COLORS.textFaint }}>kg</span>
+            </div>
+          </div>
+          {profile.competitionDate && (
+            <div>
+              <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>
+                {profile.competitionName || '大会'}まで
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: daysUntilCompetition >= 0 ? COLORS.accent : COLORS.textFaint }}>
+                {daysUntilCompetition >= 0 ? daysUntilCompetition : '済'}
+                {daysUntilCompetition >= 0 && <span style={{ fontSize: 13, color: COLORS.textFaint }}>日</span>}
+              </div>
+            </div>
+          )}
+        </div>
+        {!profile.competitionDate && (
+          <GhostButton onClick={() => setTab('goals')} style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>
+            大会日程を設定する <ChevronRight size={14} />
+          </GhostButton>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+   トレーニング設定
+   ============================================================ */
+
+function TrainingSetupView({ exercises, setExercises, trainingState, setTrainingState }) {
+  const [editingBodypart, setEditingBodypart] = useState(null);
+  const [newExerciseName, setNewExerciseName] = useState('');
+  const [newSets, setNewSets] = useState(4);
+  const [newReps, setNewReps] = useState('8-10');
+  const [confirmingPreset, setConfirmingPreset] = useState(false);
+  const [newBodypartName, setNewBodypartName] = useState('');
+
+  const todayStr = toDateStr(new Date());
+  const rec = trainingState.history?.[todayStr];
+  const bodypartOptions = Object.keys(exercises);
+  const suggested = useMemo(
+    () => suggestTodayBodypart(todayStr, exercises, trainingState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayStr, exercises]
+  );
+  const currentBodypart = rec ? rec.bodypart : suggested;
+  const isRest = !currentBodypart;
+  const todayExercises = currentBodypart ? (exercises[currentBodypart] || []) : [];
+  const completedIds = rec?.completed || [];
+  const logs = rec?.logs || {};
+
+  useEffect(() => {
+    if (!rec) {
+      const next = {
+        ...trainingState,
+        history: {
+          ...trainingState.history,
+          [todayStr]: {
+            bodypart: currentBodypart,
+            exerciseIds: todayExercises.map((e) => e.id),
+            completed: [],
+            logs: {},
+          },
+        },
+      };
+      setTrainingState(next);
+      saveKey(STORAGE.TRAINING_STATE, next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const changeBodypart = (bodypart) => {
+    const bp = bodypart || null;
+    const exList = bp ? (exercises[bp] || []) : [];
+    const next = {
+      ...trainingState,
+      history: {
+        ...trainingState.history,
+        [todayStr]: { bodypart: bp, exerciseIds: exList.map((e) => e.id), completed: [], logs: {} },
+      },
+    };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const toggleExercise = (exId) => {
+    const cur = trainingState.history?.[todayStr] || {
+      bodypart: currentBodypart, exerciseIds: todayExercises.map((e) => e.id), completed: [], logs: {},
+    };
+    const has = cur.completed.includes(exId);
+    const nextCompleted = has ? cur.completed.filter((x) => x !== exId) : [...cur.completed, exId];
+    const next = {
+      ...trainingState,
+      history: { ...trainingState.history, [todayStr]: { ...cur, completed: nextCompleted } },
+    };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const updateSetLog = (exId, setIndex, field, value) => {
+    const cur = trainingState.history?.[todayStr] || {
+      bodypart: currentBodypart, exerciseIds: todayExercises.map((e) => e.id), completed: [], logs: {},
+    };
+    const curSets = cur.logs?.[exId]?.sets || [];
+    const nextSets = [...curSets];
+    nextSets[setIndex] = { ...nextSets[setIndex], [field]: value };
+    const nextLogs = { ...cur.logs, [exId]: { sets: nextSets } };
+    const next = {
+      ...trainingState,
+      history: { ...trainingState.history, [todayStr]: { ...cur, logs: nextLogs } },
+    };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const loadPreset = () => {
+    setExercises(BEGINNER_AESTHETIC_PRESET.exercises);
+    saveKey(STORAGE.TRAINING_EXERCISES, BEGINNER_AESTHETIC_PRESET.exercises);
+    setConfirmingPreset(false);
+  };
+
+  const addExercise = (bodypart) => {
+    if (!newExerciseName.trim()) return;
+    const next = {
+      ...exercises,
+      [bodypart]: [...(exercises[bodypart] || []), { id: uid(), name: newExerciseName.trim(), sets: newSets, reps: newReps }],
+    };
+    setExercises(next);
+    saveKey(STORAGE.TRAINING_EXERCISES, next);
+    setNewExerciseName('');
+  };
+
+  const removeExercise = (bodypart, id) => {
+    const next = { ...exercises, [bodypart]: exercises[bodypart].filter((e) => e.id !== id) };
+    setExercises(next);
+    saveKey(STORAGE.TRAINING_EXERCISES, next);
+  };
+
+  const addBodypart = () => {
+    const name = newBodypartName.trim();
+    if (!name || exercises[name]) return;
+    const next = { ...exercises, [name]: [] };
+    setExercises(next);
+    saveKey(STORAGE.TRAINING_EXERCISES, next);
+    setNewBodypartName('');
+    setEditingBodypart(name);
+  };
+
+  const removeBodypart = (bodypart) => {
+    const next = { ...exercises };
+    delete next[bodypart];
+    setExercises(next);
+    saveKey(STORAGE.TRAINING_EXERCISES, next);
+    if (editingBodypart === bodypart) setEditingBodypart(null);
+  };
+
+  const bodypartsInUse = Object.keys(exercises);
+
+  // ---- 先の予定をまとめて組む ----
+  const defaultPush = exercises['胸・肩・三頭'] ? '胸・肩・三頭' : (bodypartsInUse.find((b) => b.includes('胸')) || bodypartsInUse[0] || '');
+  const defaultPull = exercises['背中・二頭'] ? '背中・二頭' : (bodypartsInUse.find((b) => b.includes('背')) || bodypartsInUse[0] || '');
+  const defaultLegs = exercises['脚'] ? '脚' : (bodypartsInUse.find((b) => b.includes('脚') || b.includes('足')) || bodypartsInUse[0] || '');
+
+  const [cyclePattern, setCyclePattern] = useState(
+    // Push/Pullを週3回、脚は週1回になる7日サイクル（休みなし）
+    [defaultPush, defaultPull, defaultPush, defaultPull, defaultLegs, defaultPush, defaultPull].filter(Boolean)
+  );
+  const [scheduleStart, setScheduleStart] = useState(toDateStr(addDays(new Date(), 1))); // デフォルト: 明日
+  const [scheduleDays, setScheduleDays] = useState(60);
+  const [addPatternBp, setAddPatternBp] = useState('');
+  const [scheduleApplied, setScheduleApplied] = useState(false);
+  const [randomize, setRandomize] = useState(true);
+  const [forceFirstDay, setForceFirstDay] = useState(defaultPush);
+
+  const addToPattern = () => {
+    if (!addPatternBp) return;
+    setCyclePattern([...cyclePattern, addPatternBp]);
+  };
+  const removeFromPattern = (idx) => {
+    setCyclePattern(cyclePattern.filter((_, i) => i !== idx));
+  };
+
+  // 同じ部位が3日以上連続しないようにしつつ、週内の比率（例: Push3/Pull3/脚1）を保ったままシャッフルする
+  const shuffleBlock = (basePattern, forceFirst) => {
+    let arr = [...basePattern];
+    let attempt = 0;
+    do {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      if (forceFirst) {
+        const idx = arr.indexOf(forceFirst);
+        if (idx > 0) [arr[0], arr[idx]] = [arr[idx], arr[0]];
+      }
+      attempt++;
+    } while (
+      attempt < 30 &&
+      arr.some((_, i) => i >= 2 && arr[i] === arr[i - 1] && arr[i] === arr[i - 2])
+    );
+    return arr;
+  };
+
+  const applySchedule = () => {
+    if (cyclePattern.length === 0) return;
+    const start = new Date(scheduleStart);
+    const nextHistory = { ...trainingState.history };
+    let dayCursor = 0;
+    let blockIndex = 0;
+    while (dayCursor < scheduleDays) {
+      const block = randomize
+        ? shuffleBlock(cyclePattern, blockIndex === 0 ? forceFirstDay : null)
+        : cyclePattern;
+      for (let i = 0; i < block.length && dayCursor < scheduleDays; i++, dayCursor++) {
+        const d = addDays(start, dayCursor);
+        const dateStr = toDateStr(d);
+        const bp = block[i];
+        const exList = exercises[bp] || [];
+        nextHistory[dateStr] = { bodypart: bp, exerciseIds: exList.map((e) => e.id), completed: [], logs: {} };
+      }
+      blockIndex++;
+    }
+    const next = { ...trainingState, history: nextHistory };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+    setScheduleApplied(true);
+    setTimeout(() => setScheduleApplied(false), 2500);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card>
+        <SectionLabel>先の予定をまとめて組む</SectionLabel>
+        <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
+          開始日から、下の順番（比率）で先の日程に部位を割り当てます（休みなしで毎日埋まります）。
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          {cyclePattern.map((bp, i) => (
+            <span key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 6, background: COLORS.surface2,
+              border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: '5px 6px 5px 12px', fontSize: 12, color: COLORS.text,
+            }}>
+              <span style={{ color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{i + 1}</span>
+              {bp}
+              <button onClick={() => removeFromPattern(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint, padding: 2 }}>
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          <select
+            value={addPatternBp} onChange={(e) => setAddPatternBp(e.target.value)}
+            style={{ flex: 1, background: COLORS.surface2, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 13 }}
+          >
+            <option value="">部位を選んで追加...</option>
+            {bodypartsInUse.map((bp) => <option key={bp} value={bp}>{bp}</option>)}
+          </select>
+          <button onClick={addToPattern} style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', color: COLORS.text }}>
+            <Plus size={16} />
+          </button>
+        </div>
+
+        <button
+          onClick={() => setRandomize(!randomize)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer',
+            padding: 0, marginBottom: 10,
+          }}
+        >
+          <span style={{
+            width: 18, height: 18, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: randomize ? COLORS.accent : 'transparent', border: `1.5px solid ${randomize ? COLORS.accent : COLORS.textFaint}`,
+          }}>
+            {randomize && <Check size={12} color="#0F1000" strokeWidth={3} />}
+          </span>
+          <span style={{ fontSize: 13, color: COLORS.text }}>週内の順番をランダムに組む（比率は維持、3連続同部位は避けます）</span>
+        </button>
+
+        {randomize && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>初日（開始日）だけは固定する</div>
+            <select
+              value={forceFirstDay} onChange={(e) => setForceFirstDay(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 13 }}
+            >
+              <option value="">指定しない</option>
+              {cyclePattern.filter((v, i, a) => a.indexOf(v) === i).map((bp) => <option key={bp} value={bp}>{bp}</option>)}
+            </select>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>開始日</div>
+            <input
+              type="date" value={scheduleStart} onChange={(e) => setScheduleStart(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>何日分</div>
+            <input
+              type="number" value={scheduleDays} onChange={(e) => setScheduleDays(clamp(parseInt(e.target.value, 10) || 1, 1, 365))}
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}
+            />
+          </div>
+        </div>
+
+        <PrimaryButton onClick={applySchedule} disabled={cyclePattern.length === 0} style={{ width: '100%', justifyContent: 'center' }}>
+          {scheduleApplied ? <Check size={15} /> : <Sparkles size={15} />}
+          {scheduleApplied ? '反映しました' : `${scheduleStart}から${scheduleDays}日分を組む`}
+        </PrimaryButton>
+      </Card>
+
+      <Card>
+        <SectionLabel>本日の部位</SectionLabel>
+        <select
+          value={currentBodypart || ''}
+          onChange={(e) => changeBodypart(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box', background: COLORS.surface2, color: COLORS.text,
+            border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: '12px 14px', fontSize: 18, fontWeight: 700,
+            marginBottom: isRest ? 0 : 14,
+          }}
+        >
+          <option value="">休養日</option>
+          {bodypartOptions.map((bp) => <option key={bp} value={bp}>{bp}</option>)}
+        </select>
+
+        {isRest ? (
+          <div style={{ color: COLORS.textDim, fontSize: 14, padding: '8px 0 0' }}>
+            今日は休養日です。しっかり回復させましょう。
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {todayExercises.length === 0 && (
+              <div style={{ color: COLORS.textFaint, fontSize: 13 }}>
+                この部位の種目が未登録です。下の「種目編集」から追加してください。
+              </div>
+            )}
+            {todayExercises.map((ex) => {
+              const done = completedIds.includes(ex.id);
+              const log = logs[ex.id] || {};
+              const setRows = log.sets || [];
+              const setCount = Math.max(parseInt(ex.sets, 10) || 1, 1);
+              return (
+                <div
+                  key={ex.id}
+                  style={{
+                    background: done ? `${COLORS.accent}14` : COLORS.surface2,
+                    border: `1px solid ${done ? COLORS.accent : COLORS.border}`,
+                    borderRadius: 10, padding: '10px 12px',
+                  }}
+                >
+                  <button
+                    onClick={() => toggleExercise(ex.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                      background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, marginBottom: 8,
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{
+                        width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        background: done ? COLORS.accent : 'transparent', border: `1.5px solid ${done ? COLORS.accent : COLORS.textFaint}`,
+                      }}>
+                        {done && <Check size={13} color="#0F1000" strokeWidth={3} />}
+                      </span>
+                      <span style={{ color: done ? COLORS.textDim : COLORS.text, textDecoration: done ? 'line-through' : 'none', fontSize: 14 }}>
+                        {ex.name}
+                      </span>
+                    </span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: COLORS.textFaint }}>
+                      目安 {ex.sets}×{ex.reps}
+                    </span>
+                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 30 }}>
+                    {Array.from({ length: setCount }).map((_, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 20, fontSize: 11, color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+                          {i + 1}
+                        </span>
+                        <input
+                          value={setRows[i]?.kg || ''} onChange={(e) => updateSetLog(ex.id, i, 'kg', e.target.value)}
+                          placeholder="kg" inputMode="decimal"
+                          style={{ width: 56, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '6px 8px', color: COLORS.text, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}
+                        />
+                        <span style={{ color: COLORS.textFaint, fontSize: 11 }}>kg ×</span>
+                        <input
+                          value={setRows[i]?.reps || ''} onChange={(e) => updateSetLog(ex.id, i, 'reps', e.target.value)}
+                          placeholder="reps" inputMode="numeric"
+                          style={{ width: 52, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '6px 8px', color: COLORS.text, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}
+                        />
+                        <span style={{ color: COLORS.textFaint, fontSize: 11 }}>回</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <SectionLabel>おすすめメニュー</SectionLabel>
+        <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
+          初心者向け・美ボディ重視の5分割（胸を上部/中下部で分割、各部位を種目リストとして登録）を読み込みます。
+        </div>
+        {!confirmingPreset ? (
+          <GhostButton onClick={() => setConfirmingPreset(true)}>
+            <Sparkles size={14} /> このメニューを読み込む
+          </GhostButton>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: COLORS.warn }}>現在の種目設定を上書きします。よろしいですか？</span>
+            <PrimaryButton onClick={loadPreset} style={{ padding: '6px 12px', fontSize: 12 }}>読み込む</PrimaryButton>
+            <GhostButton onClick={() => setConfirmingPreset(false)} style={{ padding: '6px 12px' }}>キャンセル</GhostButton>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <SectionLabel>種目編集</SectionLabel>
+        <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
+          部位ごとに種目を登録します。曜日の割り当てはありません。毎日ホーム画面で「本日の部位」を選んでください。
+        </div>
+        {bodypartsInUse.length === 0 && (
+          <div style={{ color: COLORS.textFaint, fontSize: 13, marginBottom: 10 }}>まだ部位がありません。下から追加してください。</div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {bodypartsInUse.map((bp) => (
+            <div key={bp} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <GhostButton
+                active={editingBodypart === bp}
+                onClick={() => setEditingBodypart(editingBodypart === bp ? null : bp)}
+                style={{ flex: 1 }}
+              >
+                {bp} <span style={{ color: COLORS.textFaint }}>({(exercises[bp] || []).length}種目)</span>
+              </GhostButton>
+              <button
+                onClick={() => removeBodypart(bp)}
+                title="この部位ごと削除"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint, padding: 6 }}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: editingBodypart ? 14 : 0 }}>
+          <input
+            value={newBodypartName}
+            onChange={(e) => setNewBodypartName(e.target.value)}
+            placeholder="新しい部位名（例: 胸(上部)）"
+            style={{ flex: 1, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', color: COLORS.text, fontSize: 13 }}
+          />
+          <button onClick={addBodypart} style={{ background: COLORS.accent, border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}>
+            <Plus size={16} color="#0F1000" />
+          </button>
+        </div>
+
+        {editingBodypart && (
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {(exercises[editingBodypart] || []).map((ex) => (
+                <div key={ex.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: COLORS.surface2, borderRadius: 8, padding: '8px 10px',
+                }}>
+                  <span style={{ fontSize: 14, color: COLORS.text }}>{ex.name} <span style={{ color: COLORS.textFaint, fontSize: 12 }}>{ex.sets}×{ex.reps}</span></span>
+                  <button onClick={() => removeExercise(editingBodypart, ex.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                value={newExerciseName}
+                onChange={(e) => setNewExerciseName(e.target.value)}
+                placeholder="種目名"
+                style={{ flex: 1, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', color: COLORS.text, fontSize: 13 }}
+              />
+              <input
+                type="number" value={newSets} onChange={(e) => setNewSets(parseInt(e.target.value, 10) || 1)}
+                style={{ width: 50, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+              />
+              <input
+                value={newReps} onChange={(e) => setNewReps(e.target.value)}
+                style={{ width: 64, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+              />
+              <button onClick={() => addExercise(editingBodypart)} style={{ background: COLORS.accent, border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}>
+                <Plus size={16} color="#0F1000" />
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+   食事
+   ============================================================ */
+
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, fontFamily: "'JetBrains Mono', monospace" }}>
+      <span style={{ fontSize: 22, fontWeight: 700, color: COLORS.text }}>{hh}:{mm}</span>
+      <span style={{ fontSize: 13, color: COLORS.textFaint }}>:{ss}</span>
+    </div>
+  );
+}
+
+function PFCBar({ totals, targets }) {
+  // カロリーに占めるP/F/Cの割合を色付きの帯で表示（あすけんのPFCバランス表示を参考）
+  const pKcal = totals.protein * 4;
+  const fKcal = totals.fat * 9;
+  const cKcal = totals.carb * 4;
+  const sumKcal = pKcal + fKcal + cKcal || 1;
+  const pPct = (pKcal / sumKcal) * 100;
+  const fPct = (fKcal / sumKcal) * 100;
+  const cPct = (cKcal / sumKcal) * 100;
+
+  const targetSum = (targets.protein * 4) + (targets.fat * 9) + (targets.carb * 4) || 1;
+  const targetPPct = Math.round(((targets.protein * 4) / targetSum) * 100);
+  const targetFPct = Math.round(((targets.fat * 9) / targetSum) * 100);
+  const targetCPct = Math.round(((targets.carb * 4) / targetSum) * 100);
+
+  const segColors = { p: '#7FB8E8', f: '#F0B429', c: COLORS.accent };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
+        <div style={{ width: `${pPct}%`, background: segColors.p }} />
+        <div style={{ width: `${fPct}%`, background: segColors.f }} />
+        <div style={{ width: `${cPct}%`, background: segColors.c }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: COLORS.textFaint }}>
+        <span><span style={{ color: segColors.p }}>●</span> P {Math.round(pPct)}%<span style={{ opacity: 0.6 }}> (目安{targetPPct}%)</span></span>
+        <span><span style={{ color: segColors.f }}>●</span> F {Math.round(fPct)}%<span style={{ opacity: 0.6 }}> (目安{targetFPct}%)</span></span>
+        <span><span style={{ color: segColors.c }}>●</span> C {Math.round(cPct)}%<span style={{ opacity: 0.6 }}> (目安{targetCPct}%)</span></span>
+      </div>
+    </div>
+  );
+}
+
+function ManualFoodEntry({ name, onRegister }) {
+  const [open, setOpen] = useState(false);
+  const [grams, setGrams] = useState(100);
+  const [kcal, setKcal] = useState('');
+  const [protein, setProtein] = useState('');
+  const [fat, setFat] = useState('');
+  const [carb, setCarb] = useState('');
+
+  const submit = () => {
+    if (!kcal) return;
+    onRegister({
+      name, unit: grams, serving: { label: `${grams}g`, grams },
+      kcal: parseFloat(kcal) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0, carb: parseFloat(carb) || 0,
+      zinc: 0, iron: 0, vitD: 0, mg: 0,
+    });
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <GhostButton onClick={() => setOpen(true)} style={{ width: '100%', justifyContent: 'center' }}>
+        手動でパッケージの表示から登録する
+      </GhostButton>
+    );
+  }
+
+  return (
+    <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 10, marginTop: 4 }}>
+      <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 8 }}>
+        パッケージの「栄養成分表示」を見ながら、基準量とその数値を入力してください。
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 6 }}>
+        <MiniInput label="基準量(g)" value={grams} onChange={setGrams} />
+        <MiniInput label="カロリー(kcal)" value={kcal} onChange={setKcal} />
+        <MiniInput label="タンパク質(g)" value={protein} onChange={setProtein} />
+        <MiniInput label="脂質(g)" value={fat} onChange={setFat} />
+        <MiniInput label="炭水化物(g)" value={carb} onChange={setCarb} />
+      </div>
+      <PrimaryButton onClick={submit} disabled={!kcal} style={{ width: '100%', justifyContent: 'center', marginTop: 6 }}>
+        登録して追加
+      </PrimaryButton>
+    </div>
+  );
+}
+
+function MiniInput({ label, value, onChange }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: COLORS.textFaint, marginBottom: 2 }}>{label}</div>
+      <input
+        type="number" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '6px 8px', color: COLORS.text, fontSize: 12 }}
+      />
+    </div>
+  );
+}
+
+function DietView({ profile, dietLog, setDietLog, dietTargets }) {
+  const todayStr = toDateStr(new Date());
+  const todayFoods = dietLog[todayStr] || [];
+  const [query, setQuery] = useState('');
+  const [mealType, setMealType] = useState(guessMealType(nowHHMM()));
+  const [time, setTime] = useState(nowHHMM());
+  const [selectedFood, setSelectedFood] = useState(null); // { food, servings }
+  const [favorites, setFavorites] = useState({});
+  const [customFoods, setCustomFoods] = useState([]);
+
+  useEffect(() => {
+    loadKey(STORAGE.DIET_FAVORITES, {}).then(setFavorites);
+    loadKey(STORAGE.CUSTOM_FOODS, []).then(setCustomFoods);
+  }, []);
+
+  const allFoods = useMemo(() => [...customFoods, ...FOOD_DB], [customFoods]);
+
+  const matches = query.trim()
+    ? allFoods.filter((f) => f.name.includes(query.trim())).slice(0, 6)
+    : [];
+
+  const favoriteFoods = useMemo(() => {
+    return Object.entries(favorites)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name]) => allFoods.find((f) => f.name === name))
+      .filter(Boolean);
+  }, [favorites, allFoods]);
+
+  const pickFood = (food) => {
+    setSelectedFood({ food, servings: 1 });
+    setQuery('');
+  };
+
+  const registerManualFood = (manualFood) => {
+    const nextCustom = [manualFood, ...customFoods.filter((f) => f.name !== manualFood.name)];
+    setCustomFoods(nextCustom);
+    saveKey(STORAGE.CUSTOM_FOODS, nextCustom);
+    pickFood(manualFood);
+  };
+
+  const confirmAddFood = () => {
+    if (!selectedFood) return;
+    const { food, servings } = selectedFood;
+    const grams = Math.round(food.serving.grams * servings);
+    const ratio = grams / food.unit;
+    const entry = {
+      id: uid(),
+      name: `${food.name} ${servings === Math.round(servings) ? servings : servings.toFixed(1)}${food.serving.label}`,
+      mealType, time,
+      kcal: food.kcal * ratio, protein: food.protein * ratio, fat: food.fat * ratio, carb: food.carb * ratio,
+      zinc: food.zinc * ratio, iron: food.iron * ratio, vitD: food.vitD * ratio, mg: food.mg * ratio,
+    };
+    const next = { ...dietLog, [todayStr]: [...todayFoods, entry] };
+    setDietLog(next);
+    saveKey(STORAGE.DIET_LOG_PREFIX + todayStr, next[todayStr]);
+
+    const nextFav = { ...favorites, [food.name]: (favorites[food.name] || 0) + 1 };
+    setFavorites(nextFav);
+    saveKey(STORAGE.DIET_FAVORITES, nextFav);
+
+    setSelectedFood(null);
+    const n = nowHHMM();
+    setTime(n); setMealType(guessMealType(n));
+  };
+
+  const removeFood = (id) => {
+    const next = { ...dietLog, [todayStr]: todayFoods.filter((f) => f.id !== id) };
+    setDietLog(next);
+    saveKey(STORAGE.DIET_LOG_PREFIX + todayStr, next[todayStr]);
+  };
+
+  const totals = todayFoods.reduce((acc, f) => {
+    Object.keys(acc).forEach((k) => { acc[k] += f[k] || 0; });
+    return acc;
+  }, { kcal: 0, protein: 0, fat: 0, carb: 0, zinc: 0, iron: 0, vitD: 0, mg: 0 });
+
+  const nutrientGaps = Object.keys(NUTRIENT_LABELS)
+    .map((k) => ({ key: k, ...NUTRIENT_LABELS[k], value: totals[k], target: dietTargets[k] }))
+    .filter((n) => n.value < n.target * 0.7);
+
+  const nowMin = hhmmToMin(nowHHMM());
+  const timeGaps = useMemo(() => findNutritionGaps(todayFoods, nowMin), [todayFoods, nowMin]);
+
+  const groupedByMeal = MEAL_TYPES.map((mt) => ({
+    ...mt,
+    entries: todayFoods.filter((f) => f.mealType === mt.id).sort((a, b) => hhmmToMin(a.time) - hhmmToMin(b.time)),
+  }));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <SectionLabel>現在時刻</SectionLabel>
+          <LiveClock />
+        </div>
+        <Flame size={22} color={COLORS.textFaint} />
+      </Card>
+
+      <Card>
+        <SectionLabel>食品を追加</SectionLabel>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          {MEAL_TYPES.map((mt) => (
+            <GhostButton key={mt.id} active={mealType === mt.id} onClick={() => setMealType(mt.id)} style={{ flex: 1, justifyContent: 'center' }}>
+              {mt.label}
+            </GhostButton>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              type="time" value={time} onChange={(e) => setTime(e.target.value)}
+              style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 8px', color: COLORS.text, fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}
+            />
+            <button
+              onClick={() => setTime(nowHHMM())}
+              title="現在時刻にする"
+              style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 8px', cursor: 'pointer', color: COLORS.textFaint }}
+            >
+              <Clock3 size={14} />
+            </button>
+          </div>
+        </div>
+
+        {!selectedFood && (
+          <>
+            {favoriteFoods.length > 0 && !query.trim() && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 6 }}>よく使う食品</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {favoriteFoods.map((f) => (
+                    <button
+                      key={f.name} onClick={() => pickFood(f)}
+                      style={{
+                        background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 20,
+                        padding: '6px 12px', fontSize: 12, color: COLORS.text, cursor: 'pointer',
+                      }}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <input
+              value={query} onChange={(e) => setQuery(e.target.value)} placeholder="食品名で検索（例: EAA, 鶏むね）"
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '10px 12px', color: COLORS.text, fontSize: 14, marginBottom: 8 }}
+            />
+            {matches.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {matches.map((f) => (
+                  <button
+                    key={f.name} onClick={() => pickFood(f)}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8,
+                      padding: '10px 12px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {f.name}
+                      {f.fromWeb && <span style={{ fontSize: 9, color: COLORS.accentDim, border: `1px solid ${COLORS.accentDim}`, borderRadius: 4, padding: '1px 4px' }}>Web</span>}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textFaint, fontSize: 11 }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{f.kcal}kcal/{f.unit}g</span>
+                      <ChevronRight size={13} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {query.trim() && matches.length === 0 && (
+              <div style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 14 }}>
+                <div style={{ fontSize: 13, color: COLORS.textDim, marginBottom: 10 }}>
+                  「{query.trim()}」は登録されていません。パッケージの栄養成分表示を見ながら登録できます。
+                </div>
+                <ManualFoodEntry name={query.trim()} onRegister={registerManualFood} />
+              </div>
+            )}
+          </>
+        )}
+
+        {selectedFood && (() => {
+          const { food, servings } = selectedFood;
+          const grams = Math.round(food.serving.grams * servings);
+          const ratio = grams / food.unit;
+          const preview = {
+            kcal: food.kcal * ratio, protein: food.protein * ratio, fat: food.fat * ratio, carb: food.carb * ratio,
+          };
+          const setServings = (s) => setSelectedFood({ food, servings: clamp(s, 0.5, 20) });
+          return (
+            <div style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>{food.name}</span>
+                <button onClick={() => setSelectedFood(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 12 }}>
+                <button
+                  onClick={() => setServings(servings - 0.5)}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.text, fontSize: 18, cursor: 'pointer' }}
+                >−</button>
+                <div style={{ textAlign: 'center', minWidth: 96 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {servings % 1 === 0 ? servings : servings.toFixed(1)} {food.serving.label}
+                  </div>
+                  <div style={{ fontSize: 11, color: COLORS.textFaint }}>{grams}g</div>
+                </div>
+                <button
+                  onClick={() => setServings(servings + 0.5)}
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.text, fontSize: 18, cursor: 'pointer' }}
+                >+</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+                {[['kcal', preview.kcal, ''], ['P', preview.protein, 'g'], ['F', preview.fat, 'g'], ['C', preview.carb, 'g']].map(([l, v, u]) => (
+                  <div key={l} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: COLORS.textFaint }}>{l}</div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: COLORS.text }}>{Math.round(v)}{u}</div>
+                  </div>
+                ))}
+              </div>
+
+              <PrimaryButton onClick={confirmAddFood} style={{ width: '100%', justifyContent: 'center' }}>
+                <Plus size={15} /> {MEAL_TYPES.find((m) => m.id === mealType)?.label}に追加（{time}）
+              </PrimaryButton>
+            </div>
+          );
+        })()}
+      </Card>
+
+      {timeGaps.length > 0 && (
+        <Card style={{ borderColor: COLORS.warn }}>
+          <SectionLabel>空白時間</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {timeGaps.map((g, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
+                <AlertTriangle size={15} color={COLORS.warn} style={{ marginTop: 1, flexShrink: 0 }} />
+                <span style={{ color: COLORS.text }}>
+                  <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    {minToHHMM(g.startMin)}〜{minToHHMM(g.endMin)}
+                  </strong>
+                  <span style={{ color: COLORS.textDim }}> （約{Math.round(g.diff / 60)}時間）栄養補給がありません</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <SectionLabel>今日の記録</SectionLabel>
+        {todayFoods.length === 0 ? (
+          <div style={{ color: COLORS.textFaint, fontSize: 13, marginBottom: 14 }}>まだ何も記録されていません。</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
+            {groupedByMeal.filter((g) => g.entries.length > 0).map((g) => (
+              <div key={g.id}>
+                <div style={{ fontSize: 11, color: COLORS.textFaint, fontWeight: 700, marginBottom: 6, letterSpacing: '0.04em' }}>
+                  {g.label}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {g.entries.map((f) => (
+                    <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: COLORS.textFaint, width: 38 }}>{f.time}</span>
+                        <span style={{ color: COLORS.text }}>{f.name}</span>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{Math.round(f.kcal)}kcal</span>
+                        <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint }}>
+                          <X size={13} />
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, marginBottom: 12 }}>
+          <PFCBar totals={totals} targets={dietTargets} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+          {[['カロリー', totals.kcal, dietTargets.kcal, 'kcal'], ['P', totals.protein, dietTargets.protein, 'g'], ['F', totals.fat, dietTargets.fat, 'g'], ['C', totals.carb, dietTargets.carb, 'g']]
+            .map(([label, val, target, unit]) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: COLORS.textFaint }}>{label}</div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700, color: COLORS.text }}>{Math.round(val)}</div>
+                <div style={{ fontSize: 9, color: COLORS.textFaint }}>/{Math.round(target)}{unit}</div>
+              </div>
+            ))}
+        </div>
+      </Card>
+
+      <Card>
+        <SectionLabel>微量栄養素チェック</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {Object.keys(NUTRIENT_LABELS).map((k) => {
+            const n = NUTRIENT_LABELS[k];
+            const val = totals[k]; const target = dietTargets[k];
+            const ratio = clamp(val / target, 0, 1.4);
+            const low = val < target * 0.7;
+            return (
+              <div key={k}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: low ? COLORS.warn : COLORS.textDim, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {low && <AlertTriangle size={12} />} {n.label}
+                  </span>
+                  <span style={{ color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {val.toFixed(1)} / {target}{n.unit}
+                  </span>
+                </div>
+                <div style={{ height: 6, background: COLORS.surface2, borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${ratio * 100}%`, background: low ? COLORS.warn : COLORS.accent, borderRadius: 4 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+   目標設定
+   ============================================================ */
+
+function calcTargets(profile) {
+  const { heightCm, weightKg, age, gender, job, goal } = profile;
+  const h = parseFloat(heightCm) || 170;
+  const w = parseFloat(weightKg) || 65;
+  const a = parseFloat(age) || 30;
+
+  const bmr = gender === 'female'
+    ? 10 * w + 6.25 * h - 5 * a - 161
+    : 10 * w + 6.25 * h - 5 * a + 5;
+
+  const jobFactor = { desk: 1.3, standing: 1.45, active: 1.6 }[job] || 1.3;
+  const trainingBump = 0.18; // 週数回のトレ分を上乗せ
+  let tdee = bmr * (jobFactor + trainingBump);
+
+  let kcalTarget = tdee;
+  if (goal === 'cut') kcalTarget = tdee - 400;
+  if (goal === 'bulk') kcalTarget = tdee + 300;
+  kcalTarget = Math.max(kcalTarget, gender === 'female' ? 1300 : 1500); // 極端な低カロリーを避ける下限
+
+  const proteinTarget = w * (goal === 'cut' ? 2.0 : 1.8);
+  const fatTarget = (kcalTarget * 0.25) / 9;
+  const carbTarget = Math.max((kcalTarget - proteinTarget * 4 - fatTarget * 9) / 4, 0);
+
+  return {
+    kcal: kcalTarget, protein: proteinTarget, fat: fatTarget, carb: carbTarget,
+    zinc: gender === 'female' ? 8 : 11,
+    iron: gender === 'female' ? 10.5 : 7.5,
+    vitD: 8.5,
+    mg: gender === 'female' ? 270 : 340,
+  };
+}
+
+function GoalsView({ profile, setProfile, dietTargets, setDietTargets }) {
+  const [form, setForm] = useState(profile);
+
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = async () => {
+    setProfile(form);
+    await saveKey(STORAGE.PROFILE, form);
+    const targets = calcTargets(form);
+    setDietTargets(targets);
+    await saveKey(STORAGE.DIET_TARGETS, targets);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card>
+        <SectionLabel>プロフィール</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <LabeledInput label="身長(cm)" value={form.heightCm} onChange={(v) => update('heightCm', v)} />
+          <LabeledInput label="体重(kg)" value={form.weightKg} onChange={(v) => update('weightKg', v)} />
+          <LabeledInput label="年齢" value={form.age} onChange={(v) => update('age', v)} />
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>性別</div>
+            <select value={form.gender} onChange={(e) => update('gender', e.target.value)}
+              style={{ width: '100%', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 14 }}>
+              <option value="male">男性</option>
+              <option value="female">女性</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>職業タイプ</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[['desk', 'デスクワーク'], ['standing', '立ち仕事'], ['active', '活動的']].map(([v, l]) => (
+              <GhostButton key={v} active={form.job === v} onClick={() => update('job', v)}>{l}</GhostButton>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>目標</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[['cut', '減量', TrendingDown], ['maintain', '維持', Minus], ['bulk', '増量', TrendingUp]].map(([v, l, Icon]) => (
+              <GhostButton key={v} active={form.goal === v} onClick={() => update('goal', v)}><Icon size={13} />{l}</GhostButton>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>理想の体型・要望</div>
+          <textarea
+            value={form.bodyWish} onChange={(e) => update('bodyWish', e.target.value)}
+            placeholder="例: お尻を大きくしたい、二の腕を細くしたい、逆三角形になりたい など"
+            rows={3}
+            style={{ width: '100%', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>大会名（任意）</div>
+            <input
+              value={form.competitionName || ''} onChange={(e) => update('competitionName', e.target.value)}
+              placeholder="例: 〇〇大会"
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 14 }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>大会日程（任意）</div>
+            <input
+              type="date" value={form.competitionDate || ''} onChange={(e) => update('competitionDate', e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 14, fontFamily: "'JetBrains Mono', monospace" }}
+            />
+          </div>
+        </div>
+        <PrimaryButton onClick={save} style={{ width: '100%', justifyContent: 'center' }}>
+          保存して目標値を再計算
+        </PrimaryButton>
+      </Card>
+
+      <Card>
+        <SectionLabel>算出された1日の目安</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+          {[['kcal', dietTargets.kcal, ''], ['P', dietTargets.protein, 'g'], ['F', dietTargets.fat, 'g'], ['C', dietTargets.carb, 'g']].map(([l, v, u]) => (
+            <div key={l} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: COLORS.textFaint }}>{l}</div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, fontWeight: 700, color: COLORS.text }}>{Math.round(v)}{u}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: COLORS.textFaint, marginTop: 10, lineHeight: 1.6 }}>
+          ※ 体格・活動量からの概算です。実際の消費量には個人差があります。極端な減量は避け、体調と相談しながら調整してください。
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function LabeledInput({ label, value, onChange }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: COLORS.textFaint, marginBottom: 4 }}>{label}</div>
+      <input
+        value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal"
+        style={{ width: '100%', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 14, boxSizing: 'border-box' }}
+      />
+    </div>
+  );
+}
+
+/* ============================================================
+   メインApp
+   ============================================================ */
+
+function FitApp() {
+  const [tab, setTab] = useState('home');
+  const [loaded, setLoaded] = useState(false);
+
+  const [profile, setProfile] = useState({
+    heightCm: '170', weightKg: '65', age: '28', gender: 'male', job: 'desk', goal: 'cut', bodyWish: '',
+    competitionName: '', competitionDate: '',
+  });
+  const [exercises, setExercises] = useState(DEFAULT_EXERCISES);
+  const [trainingState, setTrainingState] = useState({ history: {} });
+  const [dietLog, setDietLog] = useState({});
+  const [dietTargets, setDietTargets] = useState(calcTargets({
+    heightCm: '170', weightKg: '65', age: '28', gender: 'male', job: 'desk', goal: 'cut',
+  }));
+
+  useEffect(() => {
+    (async () => {
+      const p = await loadKey(STORAGE.PROFILE, null);
+      if (p) { setProfile(p); }
+      const ex = await loadKey(STORAGE.TRAINING_EXERCISES, null);
+      if (ex) setExercises(ex);
+      const st = await loadKey(STORAGE.TRAINING_STATE, null);
+      if (st) setTrainingState(st);
+      const dt = await loadKey(STORAGE.DIET_TARGETS, null);
+      if (dt) setDietTargets(dt); else if (p) setDietTargets(calcTargets(p));
+
+      const todayStr = toDateStr(new Date());
+      const todayLog = await loadKey(STORAGE.DIET_LOG_PREFIX + todayStr, []);
+      setDietLog({ [todayStr]: todayLog });
+
+      setLoaded(true);
+    })();
+  }, []);
+
+  const tabs = [
+    { id: 'home', label: 'ホーム', icon: HomeIcon },
+    { id: 'training', label: 'トレーニング', icon: Dumbbell },
+    { id: 'diet', label: '食事', icon: UtensilsCrossed },
+    { id: 'goals', label: '目標', icon: Target },
+  ];
+
+  if (!loaded) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, color: COLORS.textFaint }}>
+        読み込み中...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      fontFamily: "'Inter', sans-serif", background: 'transparent', color: COLORS.text,
+      maxWidth: 480, margin: '0 auto', paddingBottom: 90,
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        ::selection { background: ${COLORS.accent}44; }
+        input:focus, select:focus, textarea:focus, button:focus-visible {
+          outline: 2px solid ${COLORS.accent}; outline-offset: 1px;
+        }
+      `}</style>
+
+      <div style={{ padding: '20px 16px 4px' }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, letterSpacing: '-0.01em' }}>
+          {tab === 'home' && '今日'}
+          {tab === 'training' && 'トレーニング設定'}
+          {tab === 'diet' && '食事ログ'}
+          {tab === 'goals' && '目標設定'}
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.textFaint, marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>
+          {toDateStr(new Date())}
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 16px' }}>
+        {tab === 'home' && (
+          <HomeView
+            profile={profile} exercises={exercises}
+            trainingState={trainingState} setTrainingState={setTrainingState}
+            dietLog={dietLog} dietTargets={dietTargets} setTab={setTab}
+          />
+        )}
+        {tab === 'training' && (
+          <TrainingSetupView
+            exercises={exercises} setExercises={setExercises}
+            trainingState={trainingState} setTrainingState={setTrainingState}
+          />
+        )}
+        {tab === 'diet' && (
+          <DietView profile={profile} dietLog={dietLog} setDietLog={setDietLog} dietTargets={dietTargets} />
+        )}
+        {tab === 'goals' && (
+          <GoalsView profile={profile} setProfile={setProfile} dietTargets={dietTargets} setDietTargets={setDietTargets} />
+        )}
+      </div>
+
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480,
+        background: COLORS.surface, borderTop: `1px solid ${COLORS.border}`,
+        display: 'flex', padding: '8px 8px calc(8px + env(safe-area-inset-bottom))',
+      }}>
+        {tabs.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id} onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0',
+                color: active ? COLORS.accent : COLORS.textFaint,
+              }}
+            >
+              <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(<FitApp />);
+  </script>
+</body>
+</html>
