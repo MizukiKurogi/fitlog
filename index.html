@@ -95,39 +95,88 @@ const STORAGE = {
   CUSTOM_FOODS: 'fitapp:custom-foods',
 };
 
+// フィジーク的シルエット優先メニュー（曜日は無視、7カテゴリを順番に回すサイクル用）
+// 各種目に sets/reps/rir/tempo/restSec（休憩目安秒数）を持たせている
 const DEFAULT_EXERCISES = {
-  // メイン5種目＋腹筋2種目で、休憩込み約60分を想定したボリューム
-  '胸・肩・三頭': [
-    { id: 'p1', name: 'インクラインダンベルプレス', sets: 4, reps: '8-10' },
-    { id: 'p2', name: 'チェストプレス', sets: 3, reps: '10-12' },
-    { id: 'p3', name: 'ショルダープレス', sets: 3, reps: '10-12' },
-    { id: 'p4', name: 'サイドレイズ', sets: 3, reps: '12-15' },
-    { id: 'p5', name: 'ケーブルプレスダウン', sets: 3, reps: '12-15' },
-    { id: 'p6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
-    { id: 'p7', name: 'ケーブルクランチ', sets: 3, reps: '15-20' },
+  '胸上部+肩外側': [
+    { id: 'd1', name: 'インクラインスミスマシンプレス', sets: 3, reps: '6-10', rir: '2', tempo: '3-0-1-0', restSec: 120 },
+    { id: 'd2', name: 'インクラインダンベルプレス', sets: 3, reps: '8-12', rir: '1-2', tempo: '3-1-1-0', restSec: 90 },
+    { id: 'd3', name: 'インクラインダンベルフライ', sets: 3, reps: '10-15', rir: '1', tempo: '3-1-1-0', restSec: 75 },
+    { id: 'd4', name: 'Pec Fly', sets: 3, reps: '12-15', rir: '0-1', tempo: '3-1-2-1', restSec: 60 },
+    { id: 'd5', name: 'ケーブルクロス（下→上）', sets: 2, reps: '12-20', rir: '0-1', tempo: '2-1-2-1', restSec: 60 },
+    { id: 'd6', name: 'ダンベルサイドレイズ', sets: 4, reps: '12-20', rir: '0-1', tempo: '2-1-2-1', restSec: 60 },
+    { id: 'd7', name: 'Abdominal Machine', sets: 3, reps: '10-15', rir: '1-2', tempo: '2-1-2-1', restSec: 45 },
   ],
-  '背中・二頭': [
-    { id: 'b1', name: 'ラットプルダウン', sets: 4, reps: '10-12' },
-    { id: 'b2', name: 'シーテッドケーブルロー', sets: 3, reps: '10-12' },
-    { id: 'b3', name: 'ワンハンドダンベルロー', sets: 3, reps: '10-12' },
-    { id: 'b4', name: 'リアデルト', sets: 3, reps: '12-15' },
-    { id: 'b5', name: 'ダンベルカール', sets: 3, reps: '10-12' },
-    { id: 'b6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
-    { id: 'b7', name: 'レッグレイズ', sets: 3, reps: '15-20' },
+  '脚+肩後部': [
+    { id: 'l1', name: 'Seated Leg Press', sets: 3, reps: '8-12', rir: '2', tempo: '3-1-1-0', restSec: 120 },
+    { id: 'l2', name: 'Leg Curl', sets: 3, reps: '10-15', rir: '1-2', tempo: '2-1-3-1', restSec: 75 },
+    { id: 'l3', name: 'Leg Extension', sets: 2, reps: '10-15', rir: '1-2', tempo: '2-1-2-1', restSec: 60 },
+    { id: 'l4', name: 'Abductor', sets: 2, reps: '12-20', rir: '1-2', tempo: '2-1-2-1', restSec: 45 },
+    { id: 'l5', name: 'Adductor', sets: 2, reps: '12-20', rir: '1-2', tempo: '2-1-2-1', restSec: 45 },
+    { id: 'l6', name: 'Calf Raise', sets: 3, reps: '10-15', rir: '1-2', tempo: '2-2-3-1', restSec: 60 },
+    { id: 'l7', name: 'リアデルト', sets: 3, reps: '15-20', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
   ],
-  脚: [
-    // 頻度が週1回想定なので、その分1回あたりのボリュームをやや厚めにしている
-    { id: 'l1', name: 'スミススクワット', sets: 4, reps: '8-10' },
-    { id: 'l2', name: 'レッグプレス', sets: 4, reps: '10-15' },
-    { id: 'l3', name: 'レッグカール', sets: 3, reps: '12-15' },
-    { id: 'l4', name: 'レッグエクステンション', sets: 3, reps: '12-15' },
-    { id: 'l5', name: 'カーフレイズ', sets: 3, reps: '15-20' },
-    { id: 'l6', name: 'Abdominal Machine', sets: 3, reps: '15-20' },
-    { id: 'l7', name: 'ケーブルクランチ', sets: 3, reps: '15-20' },
+  '背中広がり+二頭': [
+    { id: 'k1', name: 'ラットプルダウン', sets: 4, reps: '8-12', rir: '1-2', tempo: '2-1-3-1', restSec: 90 },
+    { id: 'k2', name: 'ワンハンドダンベルロー', sets: 3, reps: '8-12', rir: '1-2', tempo: '2-1-3-1', restSec: 90 },
+    { id: 'k3', name: 'シーテッドケーブルロー', sets: 3, reps: '10-15', rir: '1', tempo: '2-1-3-1', restSec: 75 },
+    { id: 'k4', name: 'ケーブルプルオーバー', sets: 3, reps: '12-15', rir: '0-1', tempo: '3-1-3-1', restSec: 60 },
+    { id: 'k5', name: 'リアデルト', sets: 3, reps: '15-20', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 'k6', name: 'インクラインダンベルカール', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 'k7', name: 'ハンマーカール', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-2-1', restSec: 60 },
+  ],
+  '胸中下部+三頭': [
+    { id: 'c1', name: 'チェストプレス', sets: 3, reps: '8-12', rir: '1-2', tempo: '3-1-1-0', restSec: 90 },
+    { id: 'c2', name: 'ダンベルフライ', sets: 3, reps: '10-15', rir: '1', tempo: '3-1-1-0', restSec: 75 },
+    { id: 'c3', name: 'ケーブルプレス', sets: 3, reps: '10-15', rir: '1', tempo: '2-1-2-1', restSec: 75 },
+    { id: 'c4', name: 'ケーブルクロス', sets: 2, reps: '12-20', rir: '0-1', tempo: '2-1-2-1', restSec: 60 },
+    { id: 'c5', name: 'オーバーヘッドケーブルEX', sets: 3, reps: '10-15', rir: '0-1', tempo: '3-1-3-1', restSec: 60 },
+    { id: 'c6', name: 'ケーブルプレスダウン', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 'c7', name: 'Abdominal Machine', sets: 3, reps: '10-15', rir: '1-2', tempo: '2-1-2-1', restSec: 45 },
+  ],
+  '肩外側+背中厚み': [
+    { id: 's1', name: 'ダンベルサイドレイズ', sets: 4, reps: '12-20', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 's2', name: 'ケーブルサイドレイズ', sets: 4, reps: '12-20', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 's3', name: 'リアデルトマシン', sets: 3, reps: '12-20', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 's4', name: 'シーテッドケーブルロー', sets: 3, reps: '8-12', rir: '1-2', tempo: '2-1-3-1', restSec: 90 },
+    { id: 's5', name: 'ワンハンドダンベルロー', sets: 3, reps: '10-12', rir: '1', tempo: '2-1-3-1', restSec: 90 },
+    { id: 's6', name: 'ケーブルロー', sets: 2, reps: '12-15', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+  ],
+  腕: [
+    { id: 'a1', name: 'インクラインダンベルカール', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 'a2', name: 'ハンマーカール', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-2-1', restSec: 60 },
+    { id: 'a3', name: 'ケーブルカール', sets: 2, reps: '12-15', rir: '0-1', tempo: '2-1-2-1', restSec: 45 },
+    { id: 'a4', name: 'オーバーヘッドケーブルEX', sets: 3, reps: '10-15', rir: '0-1', tempo: '3-1-3-1', restSec: 60 },
+    { id: 'a5', name: 'ケーブルプレスダウン', sets: 3, reps: '10-15', rir: '0-1', tempo: '2-1-3-1', restSec: 60 },
+    { id: 'a6', name: 'ケーブルクロスボディEX', sets: 2, reps: '12-15', rir: '0-1', tempo: '2-1-3-1', restSec: 45 },
+    { id: 'a7', name: 'Abdominal Machine', sets: 3, reps: '10-15', rir: '1-2', tempo: '2-1-2-1', restSec: 45 },
+  ],
+  '胸上部+背中広がり': [
+    { id: 'f1', name: 'インクラインスミスマシンプレス', sets: 3, reps: '8-10', rir: '2', tempo: '3-0-1-0', restSec: 120 },
+    { id: 'f2', name: 'インクラインダンベルプレス', sets: 3, reps: '10-12', rir: '1-2', tempo: '3-1-1-0', restSec: 90 },
+    { id: 'f3', name: 'ケーブルフライ', sets: 3, reps: '12-15', rir: '0-1', tempo: '3-1-2-1', restSec: 60 },
+    { id: 'f4', name: 'ラットプルダウン', sets: 4, reps: '8-12', rir: '1-2', tempo: '2-1-3-1', restSec: 90 },
+    { id: 'f5', name: 'ワンハンドラットプル', sets: 3, reps: '10-15', rir: '1', tempo: '2-1-3-1', restSec: 75 },
+    { id: 'f6', name: 'ケーブルプルオーバー', sets: 3, reps: '12-15', rir: '0-1', tempo: '3-1-3-1', restSec: 60 },
   ],
 };
 
-// Push/Pull/Legs（脚は週1回想定・腹筋多め・約1時間目安）プリセット（トレーニング設定タブから読み込み直せる）
+// 各部位カテゴリのポイント（「おすすめメニュー」カードに表示する）
+const EXERCISE_NOTES = {
+  '胸上部+肩外側': '上胸を最優先。インクラインスミスを最初に置く。ベンチプレスは完全に不使用。',
+  '脚+肩後部': '脚は「成長させる」のではなく維持目的なので、ボリュームをかなり抑える。脚はこの日だけにして、次の日以降の上半身に疲労を残しにくくする。',
+  '背中広がり+二頭': '広背筋を「伸ばす→縮める」ことを最優先。',
+  '胸中下部+三頭': '胸上部の日と明確に刺激を分ける（中部・下部を狙う）。',
+  '肩外側+背中厚み': 'フィジークのシルエット作りで重要な日。肩幅＋背中の厚みを作る。',
+  腕: '腕の仕上げ日。腹筋も合わせて。',
+  '胸上部+背中広がり': '胸上部の別日。同じ上部でも刺激を変える。',
+};
+
+const MENU_OVERVIEW =
+  '「全身を大きくする」よりも、肩幅→上胸→背中の広がり→ウエストを細く見せる→腕、という順番でフィジーク的なシルエットを優先。' +
+  '胸は「上部」と「中部・下部」、背中は「広がり」と「厚み」、肩は「外側」と「後部」に分けて、それぞれ別の日で刺激を変えている。';
+
+// トレーニング設定タブから読み込み直せるプリセット（曜日は無視、7カテゴリを順番に回す）
 const BEGINNER_AESTHETIC_PRESET = {
   exercises: DEFAULT_EXERCISES,
 };
@@ -675,11 +724,79 @@ function HomeView({ profile, exercises, trainingState, setTrainingState, dietLog
    トレーニング設定
    ============================================================ */
 
+function RestTimer({ seconds }) {
+  const [remaining, setRemaining] = useState(null); // null = 停止中
+  useEffect(() => {
+    if (remaining === null) return;
+    if (remaining <= 0) return;
+    const t = setTimeout(() => setRemaining((r) => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [remaining]);
+
+  const mm = remaining !== null ? String(Math.floor(remaining / 60)).padStart(2, '0') : null;
+  const ss = remaining !== null ? String(remaining % 60).padStart(2, '0') : null;
+  const finished = remaining === 0;
+
+  return (
+    <button
+      onClick={() => setRemaining(seconds)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4, background: 'none',
+        border: `1px solid ${finished ? COLORS.accent : COLORS.border}`, borderRadius: 6, padding: '3px 8px',
+        color: finished ? COLORS.accent : COLORS.textFaint, fontSize: 11, cursor: 'pointer',
+        fontFamily: "'JetBrains Mono', monospace",
+      }}
+    >
+      <Clock3 size={11} />
+      {remaining === null ? `休憩${seconds}s` : finished ? '完了' : `${mm}:${ss}`}
+    </button>
+  );
+}
+
+function AddExerciseInline({ onAdd }) {
+  const [name, setName] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onAdd(name);
+    setName('');
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <GhostButton onClick={() => setOpen(true)} style={{ width: '100%', justifyContent: 'center' }}>
+        <Plus size={14} /> 種目を追加
+      </GhostButton>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <input
+        value={name} onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        placeholder="種目名（例: ダンベルカール）" autoFocus
+        style={{ flex: 1, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 10px', color: COLORS.text, fontSize: 13 }}
+      />
+      <button onClick={submit} style={{ background: COLORS.accent, border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}>
+        <Plus size={16} color="#0F1000" />
+      </button>
+      <button onClick={() => { setOpen(false); setName(''); }} style={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', color: COLORS.textFaint }}>
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 function TrainingSetupView({ exercises, setExercises, trainingState, setTrainingState }) {
   const [editingBodypart, setEditingBodypart] = useState(null);
   const [newExerciseName, setNewExerciseName] = useState('');
-  const [newSets, setNewSets] = useState(4);
-  const [newReps, setNewReps] = useState('8-10');
+  const [newSets, setNewSets] = useState(3);
+  const [newReps, setNewReps] = useState('10-15');
+  const [newRir, setNewRir] = useState('1');
+  const [newRestSec, setNewRestSec] = useState(60);
   const [confirmingPreset, setConfirmingPreset] = useState(false);
   const [newBodypartName, setNewBodypartName] = useState('');
 
@@ -752,10 +869,47 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
     const curSets = cur.logs?.[exId]?.sets || [];
     const nextSets = [...curSets];
     nextSets[setIndex] = { ...nextSets[setIndex], [field]: value };
-    const nextLogs = { ...cur.logs, [exId]: { sets: nextSets } };
+    const nextLogs = { ...cur.logs, [exId]: { ...cur.logs?.[exId], sets: nextSets } };
     const next = {
       ...trainingState,
       history: { ...trainingState.history, [todayStr]: { ...cur, logs: nextLogs } },
+    };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const addExtraSet = (exId) => {
+    const cur = trainingState.history?.[todayStr] || {
+      bodypart: currentBodypart, exerciseIds: todayExercises.map((e) => e.id), completed: [], logs: {},
+    };
+    const curExtra = cur.logs?.[exId]?.extraSets || 0;
+    const nextLogs = { ...cur.logs, [exId]: { ...cur.logs?.[exId], extraSets: curExtra + 1 } };
+    const next = {
+      ...trainingState,
+      history: { ...trainingState.history, [todayStr]: { ...cur, logs: nextLogs } },
+    };
+    setTrainingState(next);
+    saveKey(STORAGE.TRAINING_STATE, next);
+  };
+
+  const addExerciseToToday = (name) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed || !currentBodypart) return;
+    const newEx = { id: uid(), name: trimmed, sets: 3, reps: '10-15', rir: '', tempo: '', restSec: 60 };
+    // カテゴリの種目リスト自体にも永久保存しておく（次回以降もこの部位を選べば出てくる）
+    const nextExercises = { ...exercises, [currentBodypart]: [...(exercises[currentBodypart] || []), newEx] };
+    setExercises(nextExercises);
+    saveKey(STORAGE.TRAINING_EXERCISES, nextExercises);
+
+    const cur = trainingState.history?.[todayStr] || {
+      bodypart: currentBodypart, exerciseIds: todayExercises.map((e) => e.id), completed: [], logs: {},
+    };
+    const next = {
+      ...trainingState,
+      history: {
+        ...trainingState.history,
+        [todayStr]: { ...cur, exerciseIds: [...cur.exerciseIds, newEx.id] },
+      },
     };
     setTrainingState(next);
     saveKey(STORAGE.TRAINING_STATE, next);
@@ -771,7 +925,9 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
     if (!newExerciseName.trim()) return;
     const next = {
       ...exercises,
-      [bodypart]: [...(exercises[bodypart] || []), { id: uid(), name: newExerciseName.trim(), sets: newSets, reps: newReps }],
+      [bodypart]: [...(exercises[bodypart] || []), {
+        id: uid(), name: newExerciseName.trim(), sets: newSets, reps: newReps, rir: newRir, restSec: newRestSec,
+      }],
     };
     setExercises(next);
     saveKey(STORAGE.TRAINING_EXERCISES, next);
@@ -805,20 +961,18 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
   const bodypartsInUse = Object.keys(exercises);
 
   // ---- 先の予定をまとめて組む ----
-  const defaultPush = exercises['胸・肩・三頭'] ? '胸・肩・三頭' : (bodypartsInUse.find((b) => b.includes('胸')) || bodypartsInUse[0] || '');
-  const defaultPull = exercises['背中・二頭'] ? '背中・二頭' : (bodypartsInUse.find((b) => b.includes('背')) || bodypartsInUse[0] || '');
-  const defaultLegs = exercises['脚'] ? '脚' : (bodypartsInUse.find((b) => b.includes('脚') || b.includes('足')) || bodypartsInUse[0] || '');
+  // 曜日は無視し、部位カテゴリを定義順に7日サイクルで回す
+  const defaultCycle = Object.keys(DEFAULT_EXERCISES).filter((bp) => exercises[bp]);
 
   const [cyclePattern, setCyclePattern] = useState(
-    // Push/Pullを週3回、脚は週1回になる7日サイクル（休みなし）
-    [defaultPush, defaultPull, defaultPush, defaultPull, defaultLegs, defaultPush, defaultPull].filter(Boolean)
+    defaultCycle.length > 0 ? defaultCycle : bodypartsInUse
   );
   const [scheduleStart, setScheduleStart] = useState(toDateStr(addDays(new Date(), 1))); // デフォルト: 明日
   const [scheduleDays, setScheduleDays] = useState(60);
   const [addPatternBp, setAddPatternBp] = useState('');
   const [scheduleApplied, setScheduleApplied] = useState(false);
-  const [randomize, setRandomize] = useState(true);
-  const [forceFirstDay, setForceFirstDay] = useState(defaultPush);
+  const [randomize, setRandomize] = useState(false);
+  const [forceFirstDay, setForceFirstDay] = useState(cyclePattern[0] || '');
 
   const addToPattern = () => {
     if (!addPatternBp) return;
@@ -993,7 +1147,8 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
               const done = completedIds.includes(ex.id);
               const log = logs[ex.id] || {};
               const setRows = log.sets || [];
-              const setCount = Math.max(parseInt(ex.sets, 10) || 1, 1);
+              const extraSets = log.extraSets || 0;
+              const setCount = Math.max(parseInt(ex.sets, 10) || 1, 1) + extraSets;
               return (
                 <div
                   key={ex.id}
@@ -1007,7 +1162,7 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
                     onClick={() => toggleExercise(ex.id)}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                      background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, marginBottom: 8,
+                      background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, marginBottom: 4,
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1025,6 +1180,11 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
                       目安 {ex.sets}×{ex.reps}
                     </span>
                   </button>
+                  {(ex.rir || ex.tempo) && (
+                    <div style={{ paddingLeft: 30, marginBottom: 8, fontSize: 11, color: COLORS.textFaint, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {ex.rir && <>RIR {ex.rir}</>}{ex.rir && ex.tempo && '　'}{ex.tempo && <>テンポ {ex.tempo}</>}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 30 }}>
                     {Array.from({ length: setCount }).map((_, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1045,18 +1205,43 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
                         <span style={{ color: COLORS.textFaint, fontSize: 11 }}>回</span>
                       </div>
                     ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                      <button
+                        onClick={() => addExtraSet(ex.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 4, background: 'none',
+                          border: `1px dashed ${COLORS.textFaint}`, borderRadius: 6, padding: '3px 8px',
+                          color: COLORS.textFaint, fontSize: 11, cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={11} /> セット追加
+                      </button>
+                      {!!ex.restSec && <RestTimer seconds={ex.restSec} />}
+                    </div>
                   </div>
                 </div>
               );
             })}
+
+            <AddExerciseInline onAdd={addExerciseToToday} />
           </div>
         )}
       </Card>
 
       <Card>
-        <SectionLabel>おすすめメニュー</SectionLabel>
-        <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
-          初心者向け・美ボディ重視の5分割（胸を上部/中下部で分割、各部位を種目リストとして登録）を読み込みます。
+        <SectionLabel>メニューの方針</SectionLabel>
+        <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+          {MENU_OVERVIEW}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {Object.keys(DEFAULT_EXERCISES).map((bp) => (
+            EXERCISE_NOTES[bp] && (
+              <div key={bp} style={{ borderLeft: `2px solid ${COLORS.accent}`, paddingLeft: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>{bp}</div>
+                <div style={{ fontSize: 12, color: COLORS.textFaint, lineHeight: 1.5 }}>{EXERCISE_NOTES[bp]}</div>
+              </div>
+            )
+          ))}
         </div>
         {!confirmingPreset ? (
           <GhostButton onClick={() => setConfirmingPreset(true)}>
@@ -1072,9 +1257,9 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
       </Card>
 
       <Card>
-        <SectionLabel>種目編集</SectionLabel>
+        <SectionLabel>種目編集（部位ごと）</SectionLabel>
         <div style={{ color: COLORS.textDim, fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
-          部位ごとに種目を登録します。曜日の割り当てはありません。毎日ホーム画面で「本日の部位」を選んでください。
+          部位ごとに種目・セット・回数・休憩秒数を登録します。曜日の割り当てはありません。
         </div>
         {bodypartsInUse.length === 0 && (
           <div style={{ color: COLORS.textFaint, fontSize: 13, marginBottom: 10 }}>まだ部位がありません。下から追加してください。</div>
@@ -1114,37 +1299,64 @@ function TrainingSetupView({ exercises, setExercises, trainingState, setTraining
 
         {editingBodypart && (
           <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14 }}>
+            {EXERCISE_NOTES[editingBodypart] && (
+              <div style={{ fontSize: 12, color: COLORS.textFaint, marginBottom: 10, lineHeight: 1.5, background: COLORS.surface2, borderRadius: 8, padding: 10 }}>
+                💡 {EXERCISE_NOTES[editingBodypart]}
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
               {(exercises[editingBodypart] || []).map((ex) => (
                 <div key={ex.id} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   background: COLORS.surface2, borderRadius: 8, padding: '8px 10px',
                 }}>
-                  <span style={{ fontSize: 14, color: COLORS.text }}>{ex.name} <span style={{ color: COLORS.textFaint, fontSize: 12 }}>{ex.sets}×{ex.reps}</span></span>
+                  <span style={{ fontSize: 14, color: COLORS.text }}>
+                    {ex.name}{' '}
+                    <span style={{ color: COLORS.textFaint, fontSize: 12 }}>
+                      {ex.sets}×{ex.reps}
+                      {ex.rir && ` RIR${ex.rir}`}
+                      {ex.tempo && ` テンポ${ex.tempo}`}
+                      {ex.restSec ? ` 休憩${ex.restSec}s` : ''}
+                    </span>
+                  </span>
                   <button onClick={() => removeExercise(editingBodypart, ex.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.textFaint }}>
                     <Trash2 size={15} />
                   </button>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <input
                 value={newExerciseName}
                 onChange={(e) => setNewExerciseName(e.target.value)}
                 placeholder="種目名"
-                style={{ flex: 1, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', color: COLORS.text, fontSize: 13 }}
+                style={{ width: '100%', boxSizing: 'border-box', background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 10px', color: COLORS.text, fontSize: 13 }}
               />
-              <input
-                type="number" value={newSets} onChange={(e) => setNewSets(parseInt(e.target.value, 10) || 1)}
-                style={{ width: 50, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
-              />
-              <input
-                value={newReps} onChange={(e) => setNewReps(e.target.value)}
-                style={{ width: 64, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
-              />
-              <button onClick={() => addExercise(editingBodypart)} style={{ background: COLORS.accent, border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}>
-                <Plus size={16} color="#0F1000" />
-              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="number" value={newSets} onChange={(e) => setNewSets(parseInt(e.target.value, 10) || 1)}
+                  placeholder="セット" title="セット数"
+                  style={{ width: 50, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+                />
+                <input
+                  value={newReps} onChange={(e) => setNewReps(e.target.value)}
+                  placeholder="回数" title="回数"
+                  style={{ width: 56, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+                />
+                <input
+                  value={newRir} onChange={(e) => setNewRir(e.target.value)}
+                  placeholder="RIR" title="RIR"
+                  style={{ width: 46, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+                />
+                <input
+                  type="number" value={newRestSec} onChange={(e) => setNewRestSec(parseInt(e.target.value, 10) || 0)}
+                  placeholder="休憩秒" title="休憩秒数"
+                  style={{ width: 56, background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '8px 6px', color: COLORS.text, fontSize: 13, textAlign: 'center' }}
+                />
+                <button onClick={() => addExercise(editingBodypart)} style={{ background: COLORS.accent, border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer', flexShrink: 0 }}>
+                  <Plus size={16} color="#0F1000" />
+                </button>
+              </div>
             </div>
           </div>
         )}
